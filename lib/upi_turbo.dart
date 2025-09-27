@@ -1,10 +1,11 @@
 import 'dart:convert';
+
 import 'package:flutter/services.dart';
-import 'package:razorpay_flutter/model/Error.dart';
+import 'package:razorpay_flutter/model/error.dart';
 import 'package:razorpay_flutter/model/upi_account.dart';
 
-typedef void OnSuccess<T>(T result);
-typedef void OnFailure<T>(T error);
+typedef OnFailure<T> = void Function(T error);
+typedef OnSuccess<T> = void Function(T result);
 
 class UpiTurbo {
   late MethodChannel _channel;
@@ -12,13 +13,8 @@ class UpiTurbo {
   bool _isTurboPluginAvailable = true;
 
   UpiTurbo(MethodChannel channel){
-    this._channel = channel;
+    _channel = channel;
     _checkTurboPluginAvailable();
-  }
-
-  void _checkTurboPluginAvailable() async {
-    final Map<dynamic, dynamic> turboPluginAvailableResponse = await _channel.invokeMethod('isTurboPluginAvailable');
-    _isTurboPluginAvailable = turboPluginAvailableResponse["isTurboPluginAvailable"];
   }
 
   void linkNewUpiAccount({required String? customerMobile,  String? color , required OnSuccess<List<UpiAccount>> onSuccess,
@@ -65,6 +61,15 @@ class UpiTurbo {
     }
   }
 
+  void _checkTurboPluginAvailable() async {
+    final Map<dynamic, dynamic> turboPluginAvailableResponse = await _channel.invokeMethod('isTurboPluginAvailable');
+    _isTurboPluginAvailable = turboPluginAvailableResponse["isTurboPluginAvailable"];
+  }
+
+  void _emitFailure(OnFailure<Error> onFailure) {
+    onFailure(Error(errorCode:"AXIS_SDK_ERROR" , errorDescription: "No Turbo Plugin Found"));
+  }
+
   List<UpiAccount> _getUpiAccounts(jsonString) {
     if (jsonString.toString().isEmpty){
       return <UpiAccount>[];
@@ -74,10 +79,6 @@ class UpiTurbo {
       json.decode(jsonString).map((x) => UpiAccount.fromJson(x)),
     );
     return upiAccounts;
-  }
-
-  void _emitFailure(OnFailure<Error> onFailure) {
-    onFailure(Error(errorCode:"AXIS_SDK_ERROR" , errorDescription: "No Turbo Plugin Found"));
   }
 
 }
